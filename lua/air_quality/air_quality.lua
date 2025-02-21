@@ -89,6 +89,10 @@ function M.start()
 	end, 10)
 end
 
+function M.refresh()
+  update_window()
+end
+
 function M.stop()
 	if timer then
 		timer:stop()

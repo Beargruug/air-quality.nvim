@@ -7,3 +7,7 @@ end, {})
 vim.api.nvim_create_user_command("StopAirQuality", function()
 	air_quality.stop()
 end, {})
+
+vim.api.nvim_create_user_command("RefreshAirQuality", function()
+	air_quality.refresh()
+end, {})

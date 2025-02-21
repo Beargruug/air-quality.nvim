@@ -9,5 +9,6 @@ end
 
 M.start = M.air_quality.start
 M.stop = M.air_quality.stop
+M.refresh = M.air_quality.refresh
 
 return M
