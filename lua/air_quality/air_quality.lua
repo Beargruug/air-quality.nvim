@@ -8,7 +8,7 @@ local function create_window()
 	buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Lade Luftqualitätsdaten..." })
 
-	local width = 50
+	local width = 27
 	local height = 4
 	local opts = {
 		relative = "editor",
