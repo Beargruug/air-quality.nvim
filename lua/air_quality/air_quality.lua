@@ -6,7 +6,7 @@ local timer = nil
 
 local function create_window()
 	buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Lade Luftqualitätsdaten..." })
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Fetch Data" })
 
 	local width = 27
 	local height = 4
@@ -38,18 +38,61 @@ local function fetch_data()
 	return data, nil
 end
 
+local function fetch_github_data()
+	local config_file = io.open("config.json", "r")
+	if not config_file then
+		return nil, "Failed to open config file"
+	end
+
+	local config_content = config_file:read("*a")
+	config_file:close()
+
+	local ok, config = pcall(vim.fn.json_decode, config_content)
+	if not ok or not config.repo then
+		return nil, "Failed to parse config file"
+	end
+
+	local headers = {
+		"-H 'Accept: application/vnd.github+json'",
+		"-H 'X-GitHub-Api-Version: 2022-11-28'",
+	}
+	local endpoint = "/repos/" .. config.repo .. "/pulls"
+
+	local headers_str = table.concat(headers, " ")
+
+	local cmd = "gh api " .. headers_str .. " " .. endpoint
+
+	local result = vim.fn.system(cmd)
+	if vim.v.shell_error ~= 0 then
+		return nil, "Fehler beim Abruf der Daten: " .. result
+	end
+
+	local ok2, data = pcall(vim.fn.json_decode, result)
+	if not ok2 then
+		return nil, "Fehler beim Parsen der Daten"
+	end
+
+	return data, nil
+end
+
 local function update_window()
 	if not buf or not vim.api.nvim_buf_is_valid(buf) then
 		return
 	end
 	local data, err = fetch_data()
+	local gh_data, gh_err = fetch_github_data()
+
+	if gh_err then
+		vim.api.nvim_buf_set_lines(buf, 0, -1, false, { gh_err })
+		return
+	end
 	if err then
 		vim.api.nvim_buf_set_lines(buf, 0, -1, false, { err })
 		return
 	end
 
 	if not data then
-		vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Keine Daten verfügbar" })
+		vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "No Data" })
 		return
 	end
 
@@ -60,8 +103,9 @@ local function update_window()
 
 	local lines = {
 		"Temperatur: " .. temp .. " ℃",
-		"Luftfeuchtigkeit: " .. hum .. " %",
-		"Luftqualität: " .. quality_disp .. " ppm",
+		"Humidity: " .. hum .. " %",
+		"AirQuality: " .. quality_disp .. " ppm",
+		"Open PR's: " .. #gh_data,
 	}
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 end
@@ -90,7 +134,7 @@ function M.start()
 end
 
 function M.refresh()
-  update_window()
+	update_window()
 end
 
 function M.stop()
